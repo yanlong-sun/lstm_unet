@@ -8,10 +8,9 @@ class UNet(object):
         self.conf = conf
         self.is_train = is_train
 
-        self.data_format = 'NHWC'
-        self.axis = (1, 2, 3)
+        self.axis = (2, 3)
         self.channel_axis = 4
-        self.input_shape = [conf.batch, conf.height, conf.width, conf.depth, conf.channel]
+        self.input_shape = [conf.batch, conf.depth, conf.height, conf.width, conf.channel]
         self.output_shape = [conf.batch, conf.height, conf.width]
 
     def inference(self, inputs):
@@ -19,7 +18,7 @@ class UNet(object):
         # -------------------------------------------------- #
         # 1: input
         rate_field = 0
-        outputs = inputs[:, :, :, 1, :]
+        outputs = inputs[:, 4, :, :, :]
         print('input:            ', outputs.get_shape())
 
         # -------------------------------------------------- #
@@ -28,6 +27,27 @@ class UNet(object):
         outputs = ops.conv2d(outputs, rate_field, 96, (3, 3), name + '/conv1', stride=2, is_train=self.is_train, norm=False)
         outputs = ops.conv2d(outputs, rate_field, 96, (3, 3), name + '/conv2', is_train=self.is_train, norm=False)
         conv1 = ops.conv2d(outputs, rate_field, 96, (3, 3), name + '/conv3', is_train=self.is_train, norm=False)
+
+        # == LSTM part
+        outputs_init = inputs[:, 1, :, :, :]
+        outputs_init = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv1', stride=2, is_train=self.is_train, norm=False, reuse=True)
+        outputs_init = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv2', is_train=self.is_train, norm=False, reuse=True)
+        conv1_lstm = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv3', is_train=self.is_train, norm=False, reuse=True)
+        conv1_lstm = tf.expand_dims(conv1_lstm, 1)
+        for i in range(1, 4):
+            outputs_var = inputs[:, i, :, :, :]
+            outputs_var = ops.conv2d(outputs_var, rate_field, 96, (3, 3), name + '/conv1', stride=2, is_train=self.is_train, norm=False, reuse=True)
+            outputs_var = ops.conv2d(outputs_var, rate_field, 96, (3, 3), name + '/conv2', is_train=self.is_train, norm=False, reuse=True)
+            conv1_var = ops.conv2d(outputs_var, rate_field, 96, (3, 3), name + '/conv3', is_train=self.is_train, norm=False, reuse=True)
+            conv1_var = tf.expand_dims(conv1_var, 1)
+            conv1_lstm = tf.concat([conv1_lstm, conv1_var], 1)
+
+        lstm_inputs = conv1_lstm
+        cell1 = tf.contrib.rnn.ConvLSTMCell(conv_ndims=2, input_shape=[128, 128, 96], output_channels=96, kernel_shape=[3, 3])
+        initial_state = cell1.zero_state(batch_size=4, dtype=tf.float32)
+        output, final_state = tf.nn.dynamic_rnn(cell1, lstm_inputs, dtype=tf.float32, time_major=False, initial_state=initial_state)
+        conv1 = conv1 + final_state.h
+        # ==
         print('conv1:              ', conv1.get_shape())
 
         # -------------------------------------------------- #
@@ -140,7 +160,7 @@ class UNet(object):
         branch3 = ops.conv2d(branch3, rate_field, 32, (3, 3), name+'/branch3-2', is_train=self.is_train, bias=False)
         branch3 = ops.conv2d(branch3, rate_field, 2, (1, 1), name+'/branch3-3', is_train=self.is_train, bias=False)
 
-        outputs = tf.concat([branch1, branch2, branch3], self.channel_axis, name=name+'concat')
+        outputs = tf.concat([branch1, branch2, branch3], 3, name=name+'concat')
         print('up-sampling layer 5:             ', outputs.get_shape())
 
         return outputs, rate_field
@@ -151,5 +171,5 @@ class UNet(object):
         for i in range(num):
             outputs = ops.conv2d(inputs, rate_field, 192, (1, 1), name+'/conv11_'+str(i+1), is_train=self.is_train, bias=False)
             outputs = ops.conv2d(outputs, rate_field, 48, (3, 3), name+'/conv33_'+str(i+1), is_train=self.is_train, bias=False)
-            inputs = tf.concat([inputs, outputs], self.channel_axis, name=name+'concat'+str(i+1))
+            inputs = tf.concat([inputs, outputs], 3, name=name+'concat'+str(i+1))
         return inputs

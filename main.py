@@ -10,7 +10,7 @@ def configure():
     flags.DEFINE_integer('batch', 4, 'batch_size')
     flags.DEFINE_integer('height', 256, 'height of the slices')
     flags.DEFINE_integer('width', 256, 'width of the slices')
-    flags.DEFINE_integer('depth', 3, 'depth of the slices')
+    flags.DEFINE_integer('depth', 5, 'depth of the slices')
     flags.DEFINE_integer('channel', 3, 'channel')
 
     flags.DEFINE_integer('test_num', 3039, 'number of test slices')

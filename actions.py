@@ -24,10 +24,10 @@ class Actions(object):
         self.sess = sess
         self.conf = conf
         self.batch_axis = 0
-        self.axis = (1, 2, 3)
+        self.axis = (2, 3)
         self.channel_axis = 4
-        self.input_shape = [conf.batch, conf.height, conf.width, conf.depth, conf.channel]
-        self.output_shape = [conf.batch, conf.height, conf.width, conf.depth]
+        self.input_shape = [conf.batch, conf.depth, conf.height, conf.width, conf.channel]
+        self.output_shape = [conf.batch, conf.height, conf.width]
 
         # step 2: mkdir
         if not os.path.exists(conf.logdir):
@@ -44,8 +44,8 @@ class Actions(object):
         self.annotations = tf.placeholder(tf.int64, self.output_shape, name='annotations')
         self.is_train = tf.placeholder(tf.bool, name='is_train')
         expanded_annotations = tf.expand_dims(self.annotations, -1, name='annotations/expand_dims')
-        one_hot_annotations = tf.squeeze(expanded_annotations, axis=[self.channel_axis], name='annotations/squeeze')
-        one_hot_annotations = tf.one_hot(one_hot_annotations, depth=2, axis=self.channel_axis, name='annotations/one_hot')
+        one_hot_annotations = tf.squeeze(expanded_annotations, axis=[3], name='annotations/squeeze')
+        one_hot_annotations = tf.one_hot(one_hot_annotations, depth=2, axis=3, name='annotations/one_hot')
 
         # load network
         model = UNet(self.sess, self.conf, self.is_train)
@@ -54,27 +54,27 @@ class Actions(object):
         ###
         shape1 = one_hot_annotations.shape
         shape2 = self.outputs.shape
+        print('shape1:', shape1)
+        print('shape2:', shape2)
+
+
         if shape1[1].value != shape2[1].value or shape1[2].value != shape2[2].value or shape1[3].value != shape2[3].value:
             print('shape of one_hot_annotations: ', shape1)
             print('shape of outputs: ', shape2)
 
         # loss
-        self.net_pred = self.outputs[:, :, :, :, 2:]
-        self.decoded_net_pred = tf.argmax(self.net_pred, self.channel_axis, name='accuracy/decoded_net_pred')
-        losses1 = tf.losses.softmax_cross_entropy(one_hot_annotations, self.net_pred, scope='loss/loss1')
+        self.net_pred = self.outputs[:, :, :, 2:]
+        self.decoded_net_pred = tf.argmax(self.net_pred, 3, name='accuracy/decode_net_pred')
+        losses1 = tf.losses.softmax_cross_entropy(one_hot_annotations, self.net_pred, scope='loss/losses1')
         self.predicted_prob = tf.nn.softmax(self.net_pred, name='softmax')
 
-        pred_slice_0 = CCV(self.outputs[:, :, :, 0, :], self.inputs[:, :, :, 0, :], 2, 0.5, 1e-8)
-        self.pred = tf.expand_dims(pred_slice_0, 3)
-        for i in range(1, conf.depth):
-            pred_slice = CCV(self.outputs[:, :, :, i, :], self.inputs[:, :, :, i, :], 2, 0.5, 1e-8)
-            pred_slice = tf.expand_dims(pred_slice, 3)
-            self.pred = tf.concat([self.pred, pred_slice], 3)
+        # CCV
+        self.pred = CCV(self.outputs, self.inputs, 2, 0.5, 1e-8)
+
         lambda1 = 0.01
         self.pred = tf.squeeze(self.pred)
         losses2 = tf.reduce_sum(tf.square(self.pred - tf.cast(self.annotations, "float32")))
         losses = lambda1 * losses1 + losses2
-
         # optimize
         self.loss_op = tf.reduce_mean(losses, name='loss/loss_op')
         optimizer = tf.train.AdamOptimizer(learning_rate=self.conf.learning_rate,
