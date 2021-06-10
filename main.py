@@ -19,7 +19,7 @@ def configure():
     flags.DEFINE_string('model_dir', '../network/model/', 'path to model')
     flags.DEFINE_string('record_dir', '../network/record/', 'path to record')
 
-    flags.DEFINE_string('data_dir', '../Dataset/h5py_6/', 'path to dataset')
+    flags.DEFINE_string('data_dir', '../Dataset/h5py/', 'path to dataset')
     flags.DEFINE_string('pred_dir', '../predictions/', 'path to predictions')
     flags.DEFINE_string('train_data', 'training_data.hdf5', 'training data')
     flags.DEFINE_string('valid_data', 'valid_data.hdf5', 'valid data')

@@ -1,7 +1,7 @@
 clc;
 clear;
 
-action = 'training';       % 'training' 'valid' 'test'
+action = 'test';       % 'training' 'valid' 'test'
 train_test_data_slices = ['../Dataset/', action, '_data/', action, '_data_nii/slices/'];
 train_test_data_masks =  ['../Dataset/', action, '_data/', action, '_data_nii/masks/'];
 
@@ -20,8 +20,8 @@ for num_nii = 4 : length(slices_nii_file)
     disp(case_name)
     
     v_slices = load_untouch_nii([train_test_data_slices, case_name, '.nii.gz']);  
-    %v_masks = load_untouch_nii([train_test_data_masks, case_name, '.manual.mask.nii.gz']);
-    v_masks = load_untouch_nii([train_test_data_masks, case_name, '_ss.nii.gz']);
+    v_masks = load_untouch_nii([train_test_data_masks, case_name, '.manual.mask.nii.gz']);
+    %v_masks = load_untouch_nii([train_test_data_masks, case_name, '_ss.nii.gz']);
     slices_tif = v_slices.img;
     masks_tif = v_masks.img;    
     %masks_tif = zeros(size(slices_tif));
@@ -98,73 +98,90 @@ function [] = save_preprocessed_images(slices, mask, slices_destination_path, ma
     easy_sort = 100000;
     zeros_slice = zeros(size(slices, 1), size(slices, 2));
     for i = 1 : size(slices, 3)
-        imageSlice = slices(:, :, i);
-        maskSlice = mask(:, :, i);
-        if i == 1                % 1 st slice
-            imageSlice_1 = slices(:, :, i+1);
-            maskSlice_1 = mask(:, :, i+1);  
-            imageSlice_2 = slices(:, :, i+2);
-            maskSlice_2 = mask(:, :, i+2);
-            imageSlice_3 = slices(:, :, i+3);
-            maskSlice_3 = mask(:, :, i+3);
-            images_temp = cat(3, zeros_slice, zeros_slice, imageSlice, imageSlice_1, imageSlice_2, imageSlice_3);
-            masks_to_save = cat(3, zeros_slice, zeros_slice, maskSlice, maskSlice_1, maskSlice_2, maskSlice_3);
+        if i == 1                
+            imageSlice_0 = slices(:, :, i);
+            maskSlice_0 = mask(:, :, i);
+            for j = 1 : 4
+                images_temp(j, :, :) = zeros_slice;
+                masks_to_save(j, :, :) = zeros_slice;
+            end   
+            images_temp(5, :, :) = imageSlice_0; 
+            masks_to_save(5, :, :) = maskSlice_0;
             images_to_save = repmat(images_temp, [1, 1, 1, 3]);  
-        elseif i == 2            % 2 nd slice
+                  
+        elseif i == 2            
+            imageSlice_0 = slices(:, :, i);
+            maskSlice_0 = mask(:, :, i);
             imageSlice_n1 = slices(:, :, i-1);
             maskSlice_n1 = mask(:, :, i-1);
-            imageSlice_1 = slices(:, :, i+1);
-            maskSlice_1 = mask(:, :, i+1);  
-            imageSlice_2 = slices(:, :, i+2);
-            maskSlice_2 = mask(:, :, i+2);
-            imageSlice_3 = slices(:, :, i+3);
-            maskSlice_3 = mask(:, :, i+3);
-            images_temp = cat(3, zeros_slice, imageSlice_n1, imageSlice, imageSlice_1, imageSlice_2, imageSlice_3);
-            masks_to_save = cat(3, zeros_slice, maskSlice_n1, maskSlice, maskSlice_1, maskSlice_2, maskSlice_3);
-            images_to_save = repmat(images_temp, [1, 1, 1, 3]);  
-        elseif i == size(slices, 3)   % -1 slice
-            imageSlice_n2 = slices(:, :, i-2);
-            maskSlice_n2 = mask(:, :, i-2);
-            imageSlice_n1 = slices(:, :, i-1);
-            maskSlice_n1 = mask(:, :, i-1);
-            images_temp = cat(3, imageSlice_n2, imageSlice_n1, imageSlice, zeros_slice, zeros_slice, zeros_slice);
-            masks_to_save = cat(3, maskSlice_n2, maskSlice_n1, maskSlice, zeros_slice, zeros_slice, zeros_slice);
+            for j = 1 : 3
+                images_temp(j, :, :) = zeros_slice;
+                masks_to_save(j, :, :) = zeros_slice;
+            end   
+            images_temp(4, :, :) = imageSlice_n1; 
+            masks_to_save(4, :, :) = maskSlice_n1;
+            images_temp(5, :, :) = imageSlice_0; 
+            masks_to_save(5, :, :) = maskSlice_0;
             images_to_save = repmat(images_temp, [1, 1, 1, 3]);
-        elseif i == size(slices, 3)-1   % -2 slice
-            imageSlice_n2 = slices(:, :, i-2);
-            maskSlice_n2 = mask(:, :, i-2);
+        elseif i == 3
+            imageSlice_0 = slices(:, :, i);
+            maskSlice_0 = mask(:, :, i);
             imageSlice_n1 = slices(:, :, i-1);
             maskSlice_n1 = mask(:, :, i-1);
-            imageSlice_1 = slices(:, :, i+1);
-            maskSlice_1 = mask(:, :, i+1); 
-            images_temp = cat(3, imageSlice_n2, imageSlice_n1, imageSlice, imageSlice_1, zeros_slice, zeros_slice);
-            masks_to_save = cat(3, maskSlice_n2, maskSlice_n1, maskSlice, maskSlice_1, zeros_slice, zeros_slice);
+            imageSlice_n2 = slices(:, :, i-2);
+            maskSlice_n2 = mask(:, :, i-2);
+            for j = 1 : 2
+                images_temp(j, :, :) = zeros_slice;
+                masks_to_save(j, :, :) = zeros_slice;
+            end   
+            images_temp(3, :, :) = imageSlice_n2; 
+            masks_to_save(3, :, :) = maskSlice_n2;
+            images_temp(4, :, :) = imageSlice_n1; 
+            masks_to_save(4, :, :) = maskSlice_n1;
+            images_temp(5, :, :) = imageSlice_0; 
+            masks_to_save(5, :, :) = maskSlice_0;
             images_to_save = repmat(images_temp, [1, 1, 1, 3]);
-        elseif i == size(slices, 3)-2   % -3 slice
-            imageSlice_n2 = slices(:, :, i-2);
-            maskSlice_n2 = mask(:, :, i-2);
+        elseif i == 4
+            imageSlice_0 = slices(:, :, i);
+            maskSlice_0 = mask(:, :, i);
             imageSlice_n1 = slices(:, :, i-1);
             maskSlice_n1 = mask(:, :, i-1);
-            imageSlice_1 = slices(:, :, i+1);
-            maskSlice_1 = mask(:, :, i+1); 
-            imageSlice_2 = slices(:, :, i+2);
-            maskSlice_2 = mask(:, :, i+2); 
-            images_temp = cat(3, imageSlice_n2, imageSlice_n1, imageSlice, imageSlice_1, imageSlice_2, zeros_slice);
-            masks_to_save = cat(3, maskSlice_n2, maskSlice_n1, maskSlice, maskSlice_1,  maskSlice_2, zeros_slice);
+            imageSlice_n2 = slices(:, :, i-2);
+            maskSlice_n2 = mask(:, :, i-2);
+            imageSlice_n3 = slices(:, :, i-3);
+            maskSlice_n3 = mask(:, :, i-3);
+            images_temp(1, :, :) = zeros_slice;
+            masks_to_save(1, :, :) = zeros_slice;   
+            images_temp(2, :, :) = imageSlice_n3; 
+            masks_to_save(2, :, :) = maskSlice_n3;
+            images_temp(3, :, :) = imageSlice_n2; 
+            masks_to_save(3, :, :) = maskSlice_n2;
+            images_temp(4, :, :) = imageSlice_n1; 
+            masks_to_save(4, :, :) = maskSlice_n1;
+            images_temp(5, :, :) = imageSlice_0; 
+            masks_to_save(5, :, :) = maskSlice_0;
             images_to_save = repmat(images_temp, [1, 1, 1, 3]);
         else
-            imageSlice_n2 = slices(:, :, i-2);
-            maskSlice_n2 = mask(:, :, i-2);
+            imageSlice_0 = slices(:, :, i);
+            maskSlice_0 = mask(:, :, i);
             imageSlice_n1 = slices(:, :, i-1);
             maskSlice_n1 = mask(:, :, i-1);
-            imageSlice_1 = slices(:, :, i+1);
-            maskSlice_1 = mask(:, :, i+1);
-            imageSlice_2 = slices(:, :, i+2);
-            maskSlice_2 = mask(:, :, i+2);
-            imageSlice_3 = slices(:, :, i+3);
-            maskSlice_3 = mask(:, :, i+3);
-            images_temp = cat(3, imageSlice_n2, imageSlice_n1, imageSlice, imageSlice_1, imageSlice_2, imageSlice_3);
-            masks_to_save = cat(3, maskSlice_n2, maskSlice_n1, maskSlice, maskSlice_1, maskSlice_2, maskSlice_3);
+            imageSlice_n2 = slices(:, :, i-2);
+            maskSlice_n2 = mask(:, :, i-2);
+            imageSlice_n3 = slices(:, :, i-3);
+            maskSlice_n3 = mask(:, :, i-3);
+            imageSlice_n4 = slices(:, :, i-4);
+            maskSlice_n4 = mask(:, :, i-4);
+            images_temp(1, :, :) = imageSlice_n4;
+            masks_to_save(1, :, :) = maskSlice_n4;   
+            images_temp(2, :, :) = imageSlice_n3; 
+            masks_to_save(2, :, :) = maskSlice_n3;
+            images_temp(3, :, :) = imageSlice_n2; 
+            masks_to_save(3, :, :) = maskSlice_n2;
+            images_temp(4, :, :) = imageSlice_n1; 
+            masks_to_save(4, :, :) = maskSlice_n1;
+            images_temp(5, :, :) = imageSlice_0; 
+            masks_to_save(5, :, :) = maskSlice_0;
             images_to_save = repmat(images_temp, [1, 1, 1, 3]);
         end
         save([slices_destination_path prefix '_' num2str(easy_sort + i) '.mat'], 'images_to_save');       

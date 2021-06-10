@@ -23,13 +23,13 @@ class UNet(object):
 
         # -------------------------------------------------- #
         # 2: convolution 1
-        name = 'start_block'
+        name = 'start_block-'
         outputs = ops.conv2d(outputs, rate_field, 96, (3, 3), name + '/conv1', stride=2, is_train=self.is_train, norm=False)
         outputs = ops.conv2d(outputs, rate_field, 96, (3, 3), name + '/conv2', is_train=self.is_train, norm=False)
         conv1 = ops.conv2d(outputs, rate_field, 96, (3, 3), name + '/conv3', is_train=self.is_train, norm=False)
 
-        # == LSTM part
-        outputs_init = inputs[:, 1, :, :, :]
+        # == LSTM part +++++++++++++++++++++++++++++++++
+        outputs_init = inputs[:, 0, :, :, :]
         outputs_init = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv1', stride=2, is_train=self.is_train, norm=False, reuse=True)
         outputs_init = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv2', is_train=self.is_train, norm=False, reuse=True)
         conv1_lstm = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv3', is_train=self.is_train, norm=False, reuse=True)
@@ -41,13 +41,14 @@ class UNet(object):
             conv1_var = ops.conv2d(outputs_var, rate_field, 96, (3, 3), name + '/conv3', is_train=self.is_train, norm=False, reuse=True)
             conv1_var = tf.expand_dims(conv1_var, 1)
             conv1_lstm = tf.concat([conv1_lstm, conv1_var], 1)
-
-        lstm_inputs = conv1_lstm
-        cell1 = tf.contrib.rnn.ConvLSTMCell(conv_ndims=2, input_shape=[128, 128, 96], output_channels=96, kernel_shape=[3, 3])
-        initial_state = cell1.zero_state(batch_size=4, dtype=tf.float32)
-        output, final_state = tf.nn.dynamic_rnn(cell1, lstm_inputs, dtype=tf.float32, time_major=False, initial_state=initial_state)
+        print('conv1_lstm shape: ', conv1_lstm.get_shape())
+        lstm_inputs_0 = conv1_lstm
+        cell0 = tf.contrib.rnn.ConvLSTMCell(conv_ndims=2, input_shape=[128, 128, 96], output_channels=96, kernel_shape=[3, 3])
+        initial_state = cell0.zero_state(batch_size=4, dtype=tf.float32)
+        output, final_state = tf.nn.dynamic_rnn(cell0, lstm_inputs_0, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn0')
         conv1 = conv1 + final_state.h
-        # ==
+        # == +++++++++++++++++++++++++++++++++++++++++++++
+
         print('conv1:              ', conv1.get_shape())
 
         # -------------------------------------------------- #
@@ -57,8 +58,26 @@ class UNet(object):
 
         # -------------------------------------------------- #
         # 4: dense block 1
-        name = 'dense_block1'
+        name = 'dense_block1-'
         block1 = self.dense_block(outputs, name+'/dense', 6)
+        # == LSTM part +++++++++++++++++++++++++++++++++
+        block1_init = conv1_lstm[:, 0, :, :, :]
+        block1_init = ops.max_pool_2d(block1_init, (3, 3), name + '/max_pool')
+        block1_lstm = self.dense_block(block1_init, name+'dense', 6)
+        block1_lstm = tf.expand_dims(block1_lstm, 1)
+        for i in range(1, 4):
+            block1_var = conv1_lstm[:, i, :, :, :]
+            block1_var = ops.max_pool_2d(block1_var, (3, 3), name + '/max_pool')
+            block1_temp = self.dense_block(block1_var, name+'dense', 6, reuse=True)
+            block1_temp = tf.expand_dims(block1_temp, 1)
+            block1_lstm = tf.concat([block1_lstm, block1_temp], 1)
+        print('block1_lstm shape: ', block1_lstm.get_shape())
+        lstm_inputs_1 = block1_lstm
+        cell1 = tf.contrib.rnn.ConvLSTMCell(conv_ndims=2, input_shape=[64, 64, 384], output_channels=384, kernel_shape=[3, 3])
+        initial_state = cell1.zero_state(batch_size=4, dtype=tf.float32)
+        output, final_state = tf.nn.dynamic_rnn(cell1, lstm_inputs_1, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn1')
+        block1 = block1 + final_state.h
+        # == +++++++++++++++++++++++++++++++++++++++++++++
         print('dense block 1:      ', block1.get_shape())
 
         # -------------------------------------------------- #
@@ -69,8 +88,28 @@ class UNet(object):
 
         # -------------------------------------------------- #
         # 6: dense block 2
-        name = 'dense_block2'
+        name = 'dense_block2-'
         block2 = self.dense_block(outputs, name + '/dense', 12)
+        # == LSTM part +++++++++++++++++++++++++++++++++
+        block2_init = block1_lstm[:, 0, :, :, :]
+        block2_init = ops.conv2d(block2_init, rate_field, 192, (1, 1), 'dense_block1-conv11', is_train=self.is_train, bias=False, reuse=True)
+        block2_init = ops.avg_pool_2d(block2_init, (3, 3), name + '/avg_pool')
+        block2_lstm = self.dense_block(block2_init, name+'dense', 12)
+        block2_lstm = tf.expand_dims(block2_lstm, 1)
+        for i in range(1, 4):
+            block2_var = block1_lstm[:, i, :, :, :]
+            block2_var = ops.conv2d(block2_var, rate_field, 192, (1, 1), 'dense_block1-conv11', is_train=self.is_train, bias=False, reuse=True)
+            block2_var = ops.avg_pool_2d(block2_var, (3, 3), name + '/avg_pool')
+            block2_temp = self.dense_block(block2_var, name+'dense', 12, reuse=True)
+            block2_temp = tf.expand_dims(block2_temp, 1)
+            block2_lstm = tf.concat([block2_lstm, block2_temp], 1)
+        print('block2_lstm shape: ', block2_lstm.get_shape())
+        lstm_inputs_2 = block2_lstm
+        cell2 = tf.contrib.rnn.ConvLSTMCell(conv_ndims=2, input_shape=[32, 32, 768], output_channels=768, kernel_shape=[3, 3])
+        initial_state = cell2.zero_state(batch_size=4, dtype=tf.float32)
+        output, final_state = tf.nn.dynamic_rnn(cell2, lstm_inputs_2, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn2')
+        block2 = block2 + final_state.h
+        # == +++++++++++++++++++++++++++++++++++++++++++++
         print('dense block 2:        ', block2.get_shape())
 
         # -------------------------------------------------- #
@@ -81,8 +120,28 @@ class UNet(object):
 
         # -------------------------------------------------- #
         # 8: dense block 3
-        name = 'dense_block3'
+        name = 'dense_block3-'
         block3 = self.dense_block(outputs, name + '/dense', 36)
+        # == LSTM part +++++++++++++++++++++++++++++++++
+        block3_init = block2_lstm[:, 0, :, :, :]
+        block3_init = ops.conv2d(block3_init, rate_field, 384, (1, 1), 'dense_block2-conv11', is_train=self.is_train, bias=False, reuse=True)
+        block3_init = ops.avg_pool_2d(block3_init, (3, 3), name + '/avg_pool')
+        block3_lstm = self.dense_block(block3_init, name + 'dense', 36)
+        block3_lstm = tf.expand_dims(block3_lstm, 1)
+        for i in range(1, 4):
+            block3_var = block2_lstm[:, i, :, :, :]
+            block3_var = ops.conv2d(block3_var, rate_field, 384, (1, 1), 'dense_block2-conv11', is_train=self.is_train, bias=False, reuse=True)
+            block3_var = ops.avg_pool_2d(block3_var, (3, 3), name + '/avg_pool')
+            block3_temp = self.dense_block(block3_var, name + 'dense', 36, reuse=True)
+            block3_temp = tf.expand_dims(block3_temp, 1)
+            block3_lstm = tf.concat([block3_lstm, block3_temp], 1)
+        print('block3_lstm shape: ', block3_lstm.get_shape())
+        lstm_inputs_3 = block3_lstm
+        cell3 = tf.contrib.rnn.ConvLSTMCell(conv_ndims=2, input_shape=[16, 16, 2112], output_channels=2112, kernel_shape=[3, 3])
+        initial_state = cell3.zero_state(batch_size=4, dtype=tf.float32)
+        output, final_state = tf.nn.dynamic_rnn(cell3, lstm_inputs_3, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn3')
+        block3 = block3 + final_state.h
+        # == +++++++++++++++++++++++++++++++++++++++++++++
         print('dense block 3:          ', block3.get_shape())
 
         # -------------------------------------------------- #
@@ -93,9 +152,31 @@ class UNet(object):
 
         # -------------------------------------------------- #
         # 10: dense block 4
-        name = 'dense_block4'
+        name = 'dense_block4-'
         block4 = self.dense_block(outputs, name + '/dense', 24)
         block4 = ops.conv2d(block4, rate_field, 2112, (1, 1), name + '/conv11', is_train=self.is_train, bias=False)
+        # == LSTM part +++++++++++++++++++++++++++++++++
+        block4_init = block3_lstm[:, 0, :, :, :]
+        block4_init = ops.conv2d(block4_init, rate_field, 1056, (1, 1), 'dense_block3-conv11', is_train=self.is_train, bias=False, reuse=True)
+        block4_init = ops.avg_pool_2d(block4_init, (3, 3), name + '/avg_pool')
+        block4_lstm = self.dense_block(block4_init, name + 'dense', 24)
+        block4_lstm = ops.conv2d(block4_lstm, rate_field, 2112, (1, 1), name + '/conv11', is_train=self.is_train, bias=False, reuse=True)
+        block4_lstm = tf.expand_dims(block4_lstm, 1)
+        for i in range(1, 4):
+            block4_var = block3_lstm[:, i, :, :, :]
+            block4_var = ops.conv2d(block4_var, rate_field, 1056, (1, 1), 'dense_block3-conv11', is_train=self.is_train, bias=False, reuse=True)
+            block4_var = ops.avg_pool_2d(block4_var, (3, 3), name + '/avg_pool')
+            block4_temp = self.dense_block(block4_var, name + 'dense', 24, reuse=True)
+            block4_temp = ops.conv2d(block4_temp, rate_field, 2112, (1, 1), name + '/conv11', is_train=self.is_train, bias=False, reuse=True)
+            block4_temp = tf.expand_dims(block4_temp, 1)
+            block4_lstm = tf.concat([block4_lstm, block4_temp], 1)
+        print('block4_lstm shape: ', block4_lstm.get_shape())
+        lstm_inputs_4 = block4_lstm
+        cell4 = tf.contrib.rnn.ConvLSTMCell(conv_ndims=2, input_shape=[8, 8, 2112], output_channels=2112, kernel_shape=[3, 3])
+        initial_state = cell4.zero_state(batch_size=4, dtype=tf.float32)
+        output, final_state = tf.nn.dynamic_rnn(cell4, lstm_inputs_4, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn4')
+        block4 = block4 + final_state.h
+        # == +++++++++++++++++++++++++++++++++++++++++++++
         print('dense block 4:           ', block4.get_shape())
 
         # -------------------------------------------------- #
@@ -166,10 +247,10 @@ class UNet(object):
         return outputs, rate_field
 
     # DENSE BLOCK
-    def dense_block(self, inputs, name, num):
+    def dense_block(self, inputs, name, num, reuse=False):
         rate_field = inputs
-        for i in range(num):
-            outputs = ops.conv2d(inputs, rate_field, 192, (1, 1), name+'/conv11_'+str(i+1), is_train=self.is_train, bias=False)
-            outputs = ops.conv2d(outputs, rate_field, 48, (3, 3), name+'/conv33_'+str(i+1), is_train=self.is_train, bias=False)
+        for i in range(0, num):
+            outputs = ops.conv2d(inputs, rate_field, 192, (1, 1), name + '/conv11_' + str(i+1), is_train=self.is_train, bias=False, reuse=reuse)
+            outputs = ops.conv2d(outputs, rate_field, 48, (3, 3), name + '/conv33_' + str(i+1), is_train=self.is_train, bias=False, reuse=reuse)
             inputs = tf.concat([inputs, outputs], 3, name=name+'concat'+str(i+1))
         return inputs

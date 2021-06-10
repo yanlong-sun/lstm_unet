@@ -54,9 +54,6 @@ class Actions(object):
         ###
         shape1 = one_hot_annotations.shape
         shape2 = self.outputs.shape
-        print('shape1:', shape1)
-        print('shape2:', shape2)
-
 
         if shape1[1].value != shape2[1].value or shape1[2].value != shape2[2].value or shape1[3].value != shape2[3].value:
             print('shape of one_hot_annotations: ', shape1)
@@ -69,7 +66,7 @@ class Actions(object):
         self.predicted_prob = tf.nn.softmax(self.net_pred, name='softmax')
 
         # CCV
-        self.pred = CCV(self.outputs, self.inputs, 2, 0.5, 1e-8)
+        self.pred = CCV(self.outputs, self.inputs[:, 4, :, :, :], 2, 0.5, 1e-8)
 
         lambda1 = 0.01
         self.pred = tf.squeeze(self.pred)

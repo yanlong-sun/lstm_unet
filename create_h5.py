@@ -2,7 +2,7 @@ import h5py
 import os
 import scipy.io as scio
 
-action = 'training'      #  valid training test
+action = 'test'      #  valid training test
 slices_path = '../Dataset/' + action + '_data/' + action + '_data_mat/slices/'
 masks_path = '../Dataset/' + action + '_data/' + action + '_data_mat/masks/'
 if not os.path.exists('../Dataset/h5py/'):

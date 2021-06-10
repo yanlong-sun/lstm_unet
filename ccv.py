@@ -13,7 +13,6 @@ def CCV(net_output, inputs0, max_iter, gamma, epsilon):
     mu = tf.expand_dims(net_output[:, :, :, 0], -1) * 0.001
     lambda0 = tf.expand_dims(net_output[:, :, :, 1], -1) * 0.001
     inputs0 = tf.expand_dims(inputs0[:, :, :, 0], -1)
-
     Gx = tf.constant(np.array([-1, 1, 0]))
     Gx = tf.cast(Gx, "float32")
     filterx = tf.reshape(Gx, [3, 1, 1, 1])
