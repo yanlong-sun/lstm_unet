@@ -7,7 +7,7 @@ from actions import Actions
 def configure():
     flags = tf.app.flags
 
-    flags.DEFINE_integer('batch', 4, 'batch_size')
+    flags.DEFINE_integer('batch', 2, 'batch_size')
     flags.DEFINE_integer('height', 256, 'height of the slices')
     flags.DEFINE_integer('width', 256, 'width of the slices')
     flags.DEFINE_integer('depth', 5, 'depth of the slices')
