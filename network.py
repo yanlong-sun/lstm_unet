@@ -12,9 +12,9 @@ class UNet(object):
         self.channel_axis = 4
         self.input_shape = [conf.batch, conf.depth, conf.height, conf.width, conf.channel]
         self.output_shape = [conf.batch, conf.height, conf.width]
+        self.start_slice = conf.start_slice_num
 
     def inference(self, inputs):
-        start_slice = 1
         print('-------------------- LSTM Dense UNet --------------------')
         # -------------------------------------------------- #
         # 1: input
@@ -30,12 +30,12 @@ class UNet(object):
         conv1 = ops.conv2d(outputs, rate_field, 96, (3, 3), name + '/conv3', is_train=self.is_train, norm=False)
 
         # == LSTM part +++++++++++++++++++++++++++++++++
-        outputs_init = inputs[:, start_slice, :, :, :]
+        outputs_init = inputs[:, self.start_slice, :, :, :]
         outputs_init = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv1', stride=2, is_train=self.is_train, norm=False, reuse=True)
         outputs_init = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv2', is_train=self.is_train, norm=False, reuse=True)
         conv1_lstm = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv3', is_train=self.is_train, norm=False, reuse=True)
         conv1_lstm = tf.expand_dims(conv1_lstm, 1)
-        for i in range(start_slice+1, 4):
+        for i in range(self.start_slice+1, 4):
             outputs_var = inputs[:, i, :, :, :]
             outputs_var = ops.conv2d(outputs_var, rate_field, 96, (3, 3), name + '/conv1', stride=2, is_train=self.is_train, norm=False, reuse=True)
             outputs_var = ops.conv2d(outputs_var, rate_field, 96, (3, 3), name + '/conv2', is_train=self.is_train, norm=False, reuse=True)
@@ -62,11 +62,11 @@ class UNet(object):
         name = 'dense_block1-'
         block1 = self.dense_block(outputs, name+'/dense', 6)
         # == LSTM part +++++++++++++++++++++++++++++++++
-        block1_init = conv1_lstm[:, start_slice, :, :, :]
+        block1_init = conv1_lstm[:, 0, :, :, :]
         block1_init = ops.max_pool_2d(block1_init, (3, 3), name + '/max_pool')
         block1_lstm = self.dense_block(block1_init, name+'/dense', 6, reuse=True)
         block1_lstm = tf.expand_dims(block1_lstm, 1)
-        for i in range(start_slice+1, 4):
+        for i in range(1, 4-self.start_slice):
             block1_var = conv1_lstm[:, i, :, :, :]
             block1_var = ops.max_pool_2d(block1_var, (3, 3), name + '/max_pool')
             block1_temp = self.dense_block(block1_var, name+'/dense', 6, reuse=True)
@@ -92,12 +92,12 @@ class UNet(object):
         name = 'dense_block2-'
         block2 = self.dense_block(outputs, name + '/dense', 12)
         # == LSTM part +++++++++++++++++++++++++++++++++
-        block2_init = block1_lstm[:, start_slice, :, :, :]
+        block2_init = block1_lstm[:, 0, :, :, :]
         block2_init = ops.conv2d(block2_init, rate_field, 192, (1, 1), 'dense_block1-conv11', is_train=self.is_train, bias=False, reuse=True)
         block2_init = ops.avg_pool_2d(block2_init, (3, 3), name + '/avg_pool')
         block2_lstm = self.dense_block(block2_init, name+'/dense', 12, reuse=True)
         block2_lstm = tf.expand_dims(block2_lstm, 1)
-        for i in range(start_slice+1, 4):
+        for i in range(1, 4-self.start_slice):
             block2_var = block1_lstm[:, i, :, :, :]
             block2_var = ops.conv2d(block2_var, rate_field, 192, (1, 1), 'dense_block1-conv11', is_train=self.is_train, bias=False, reuse=True)
             block2_var = ops.avg_pool_2d(block2_var, (3, 3), name + '/avg_pool')
@@ -124,12 +124,12 @@ class UNet(object):
         name = 'dense_block3-'
         block3 = self.dense_block(outputs, name + '/dense', 36)
         # == LSTM part +++++++++++++++++++++++++++++++++
-        block3_init = block2_lstm[:, start_slice, :, :, :]
+        block3_init = block2_lstm[:, 0, :, :, :]
         block3_init = ops.conv2d(block3_init, rate_field, 384, (1, 1), 'dense_block2-conv11', is_train=self.is_train, bias=False, reuse=True)
         block3_init = ops.avg_pool_2d(block3_init, (3, 3), name + '/avg_pool')
         block3_lstm = self.dense_block(block3_init, name + '/dense', 36, reuse=True)
         block3_lstm = tf.expand_dims(block3_lstm, 1)
-        for i in range(start_slice+1, 4):
+        for i in range(1, 4-self.start_slice):
             block3_var = block2_lstm[:, i, :, :, :]
             block3_var = ops.conv2d(block3_var, rate_field, 384, (1, 1), 'dense_block2-conv11', is_train=self.is_train, bias=False, reuse=True)
             block3_var = ops.avg_pool_2d(block3_var, (3, 3), name + '/avg_pool')
@@ -157,13 +157,13 @@ class UNet(object):
         block4 = self.dense_block(outputs, name + '/dense', 24)
         block4 = ops.conv2d(block4, rate_field, 2112, (1, 1), name + '/conv11', is_train=self.is_train, bias=False)
         # == LSTM part +++++++++++++++++++++++++++++++++
-        block4_init = block3_lstm[:,start_slice, :, :, :]
+        block4_init = block3_lstm[:, 0, :, :, :]
         block4_init = ops.conv2d(block4_init, rate_field, 1056, (1, 1), 'dense_block3-conv11', is_train=self.is_train, bias=False, reuse=True)
         block4_init = ops.avg_pool_2d(block4_init, (3, 3), name + '/avg_pool')
         block4_lstm = self.dense_block(block4_init, name + '/dense', 24, reuse=True)
         block4_lstm = ops.conv2d(block4_lstm, rate_field, 2112, (1, 1), name + '/conv11', is_train=self.is_train, bias=False, reuse=True)
         block4_lstm = tf.expand_dims(block4_lstm, 1)
-        for i in range(start_slice+1, 4):
+        for i in range(1, 4-self.start_slice):
             block4_var = block3_lstm[:, i, :, :, :]
             block4_var = ops.conv2d(block4_var, rate_field, 1056, (1, 1), 'dense_block3-conv11', is_train=self.is_train, bias=False, reuse=True)
             block4_var = ops.avg_pool_2d(block4_var, (3, 3), name + '/avg_pool')
