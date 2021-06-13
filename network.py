@@ -61,6 +61,7 @@ class UNet(object):
         # 4: dense block 1
         name = 'dense_block1-'
         block1 = self.dense_block(outputs, name+'/dense', 6)
+        """
         # == LSTM part +++++++++++++++++++++++++++++++++
         block1_init = conv1_lstm[:, 0, :, :, :]
         block1_init = ops.max_pool_2d(block1_init, (3, 3), name + '/max_pool')
@@ -79,6 +80,7 @@ class UNet(object):
         output, final_state = tf.nn.dynamic_rnn(cell1, lstm_inputs_1, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn1')
         block1 = block1 + final_state.h
         # == +++++++++++++++++++++++++++++++++++++++++++++
+        """
         print('dense block 1:      ', block1.get_shape())
 
         # -------------------------------------------------- #
@@ -91,6 +93,7 @@ class UNet(object):
         # 6: dense block 2
         name = 'dense_block2-'
         block2 = self.dense_block(outputs, name + '/dense', 12)
+        """
         # == LSTM part +++++++++++++++++++++++++++++++++
         block2_init = block1_lstm[:, 0, :, :, :]
         block2_init = ops.conv2d(block2_init, rate_field, 192, (1, 1), 'dense_block1-conv11', is_train=self.is_train, bias=False, reuse=True)
@@ -111,6 +114,7 @@ class UNet(object):
         output, final_state = tf.nn.dynamic_rnn(cell2, lstm_inputs_2, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn2')
         block2 = block2 + final_state.h
         # == +++++++++++++++++++++++++++++++++++++++++++++
+        """
         print('dense block 2:        ', block2.get_shape())
 
         # -------------------------------------------------- #
@@ -123,6 +127,7 @@ class UNet(object):
         # 8: dense block 3
         name = 'dense_block3-'
         block3 = self.dense_block(outputs, name + '/dense', 36)
+        """
         # == LSTM part +++++++++++++++++++++++++++++++++
         block3_init = block2_lstm[:, 0, :, :, :]
         block3_init = ops.conv2d(block3_init, rate_field, 384, (1, 1), 'dense_block2-conv11', is_train=self.is_train, bias=False, reuse=True)
@@ -143,6 +148,7 @@ class UNet(object):
         output, final_state = tf.nn.dynamic_rnn(cell3, lstm_inputs_3, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn3')
         block3 = block3 + final_state.h
         # == +++++++++++++++++++++++++++++++++++++++++++++
+        """
         print('dense block 3:          ', block3.get_shape())
 
         # -------------------------------------------------- #
@@ -156,6 +162,7 @@ class UNet(object):
         name = 'dense_block4-'
         block4 = self.dense_block(outputs, name + '/dense', 24)
         block4 = ops.conv2d(block4, rate_field, 2112, (1, 1), name + '/conv11', is_train=self.is_train, bias=False)
+        """
         # == LSTM part +++++++++++++++++++++++++++++++++
         block4_init = block3_lstm[:, 0, :, :, :]
         block4_init = ops.conv2d(block4_init, rate_field, 1056, (1, 1), 'dense_block3-conv11', is_train=self.is_train, bias=False, reuse=True)
@@ -178,6 +185,7 @@ class UNet(object):
         output, final_state = tf.nn.dynamic_rnn(cell4, lstm_inputs_4, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn4')
         block4 = block4 + final_state.h
         # == +++++++++++++++++++++++++++++++++++++++++++++
+        """
         print('dense block 4:           ', block4.get_shape())
 
         # -------------------------------------------------- #
