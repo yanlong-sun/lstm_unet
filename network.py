@@ -61,7 +61,6 @@ class UNet(object):
         # 4: dense block 1
         name = 'dense_block1-'
         block1 = self.dense_block(outputs, name+'/dense', 6)
-        """
         # == LSTM part +++++++++++++++++++++++++++++++++
         block1_init = conv1_lstm[:, 0, :, :, :]
         block1_init = ops.max_pool_2d(block1_init, (3, 3), name + '/max_pool')
@@ -80,7 +79,7 @@ class UNet(object):
         output, final_state = tf.nn.dynamic_rnn(cell1, lstm_inputs_1, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn1')
         block1 = block1 + final_state.h
         # == +++++++++++++++++++++++++++++++++++++++++++++
-        """
+
         print('dense block 1:      ', block1.get_shape())
 
         # -------------------------------------------------- #
