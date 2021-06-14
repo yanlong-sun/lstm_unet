@@ -127,7 +127,7 @@ class UNet(object):
         # 8: dense block 3
         name = 'dense_block3-'
         block3 = self.dense_block(outputs, name + '/dense', 36, is_train=self.is_train)
-
+        """
         # == LSTM part +++++++++++++++++++++++++++++++++
         block3_init = block2_lstm[:, 0, :, :, :]
         block3_init = ops.conv2d(block3_init, rate_field, 384, (1, 1), 'dense_block2-conv11', is_train=False, bias=False, reuse=True)
@@ -148,7 +148,7 @@ class UNet(object):
         output, final_state = tf.nn.dynamic_rnn(cell3, lstm_inputs_3, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn3')
         block3 = block3 + final_state.h
         # == +++++++++++++++++++++++++++++++++++++++++++++
-
+        """
         print('dense block 3:          ', block3.get_shape())
 
         # -------------------------------------------------- #
