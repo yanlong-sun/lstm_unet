@@ -190,7 +190,7 @@ class Actions(object):
 
             feed_dict = {self.inputs: inputs, self.annotations: annotations[:, 4, :, :], self.is_train: False}
             pred_result = self.sess.run(self.decoded_net_pred, feed_dict=feed_dict)
-            pred_result = pred_result[:, :, :, 1]
+            pred_result = pred_result
 
             predictions.append(pred_result)
 

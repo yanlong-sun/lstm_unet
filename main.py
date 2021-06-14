@@ -27,7 +27,7 @@ def configure():
     flags.DEFINE_string('test_data', 'test_data.hdf5', 'test data')
 
     flags.DEFINE_integer('max_epoch', 30001, 'num of epoch')
-    flags.DEFINE_integer('test_epoch', 21001, 'choose epoch for testing')
+    flags.DEFINE_integer('test_epoch', 29001, 'choose epoch for testing')
     flags.DEFINE_integer('valid_step', 1000, 'step to valid')
     flags.DEFINE_integer('save_step', 1000, 'step to save')
 

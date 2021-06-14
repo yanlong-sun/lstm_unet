@@ -2,9 +2,11 @@ clc;
 clear;
 
 % masks' path
-masks_path = '../Dataset/test_data/test_data_bmp_one/masks/';
-preds_path = '../predictions/';
-final_preds_path = '../png_pred_results_densenet/';
+masks_path = '../Dataset/test_data/test_data_bmp/masks/'; % mask 
+preds_path = '../predictions_lstm1/';     % pred of the network
+final_preds_path = '../png_pred_results_lstm1/'; % classified by name
+save_path = '../pred_nii/dl_pred_nii/';  % nii 
+
 masks_folder=dir(masks_path);
 masks_file= {masks_folder.name};
 i = 0;  % index for the pred masks 
@@ -31,7 +33,6 @@ end
 
 
 prediction_path = final_preds_path;
-save_path = '../pred_nii/dl_pred_nii/';
 pred_folder= dir(prediction_path);
 pred_file={pred_folder.name};
 
@@ -49,12 +50,12 @@ for num_pred= 3 : length(pred_file)
     [a1, a2, a3] = size(v_orig.img);
     
     %% Image Part
-    first_slice_path = ['../Dataset/test_data/test_data_bmp_one/slices/', case_name,'_', num2str(10001), '.bmp' ];
+    first_slice_path = ['../Dataset/test_data/test_data_bmp/slices/', case_name,'_', num2str(10001), '.bmp' ];
     slices = im2gray(imread(first_slice_path));    
     slices = get_original_size(slices, a1, a2);
     
     for i = 2 : a3
-        single_slice_path = ['../Dataset/test_data/test_data_bmp_one/slices/', case_name,'_', num2str(10000+i), '.bmp' ];
+        single_slice_path = ['../Dataset/test_data/test_data_bmp/slices/', case_name,'_', num2str(10000+i), '.bmp' ];
         single_slice = im2gray(imread(single_slice_path));
         single_slice = get_original_size(single_slice, a1, a2);
         figure(1)
@@ -66,13 +67,13 @@ for num_pred= 3 : length(pred_file)
         if j == 1
             preds = imread([prediction_path, case_name, '/', case_name,'_', num2str(10001), '.bmp' ]);
             %preds = im2gray(preds);
-            masks = imread(['../Dataset/test_data/test_data_bmp_one/masks/', case_name,'_', num2str(10001), '.bmp' ]);
+            masks = imread(['../Dataset/test_data/test_data_bmp/masks/', case_name,'_', num2str(10001), '.bmp' ]);
             
             preds = get_original_size(preds, a1, a2);
             masks = get_original_size(masks, a1, a2);
         else
             single_pred = imread([prediction_path case_name, '/', case_name,'_', num2str(10000+j), '.bmp' ]);
-            single_mask = imread(['../Dataset/test_data/test_data_bmp_one/masks/', case_name,'_', num2str(10000+j), '.bmp' ]);
+            single_mask = imread(['../Dataset/test_data/test_data_bmp/masks/', case_name,'_', num2str(10000+j), '.bmp' ]);
             
             single_pred = get_original_size(single_pred, a1, a2);
             single_mask = get_original_size(single_mask, a1, a2);

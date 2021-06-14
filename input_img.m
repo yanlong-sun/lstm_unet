@@ -43,8 +43,8 @@ for num_nii = 4 : length(slices_nii_file)
     end
     
 %% 
-    slices_destination_path = ['../Dataset/', action, '_data/', action, '_data_bmp_one/slices/'];
-    masks_destination_path = ['../Dataset/', action, '_data/', action, '_data_bmp_one/masks/'];  
+    slices_destination_path = ['../Dataset/', action, '_data/', action, '_data_bmp/slices/'];
+    masks_destination_path = ['../Dataset/', action, '_data/', action, '_data_bmp/masks/'];  
     mkdir(slices_destination_path);
     mkdir(masks_destination_path);
 %% classify into two categories    
