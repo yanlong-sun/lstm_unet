@@ -47,7 +47,7 @@ class UNet(object):
         cell0 = tf.contrib.rnn.ConvLSTMCell(conv_ndims=2, input_shape=[128, 128, 96], output_channels=96, kernel_shape=[3, 3])
         initial_state = cell0.zero_state(batch_size=self.conf.batch, dtype=tf.float32)
         output, final_state = tf.nn.dynamic_rnn(cell0, lstm_inputs_0, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn0')
-        conv1 = conv1 + final_state.h
+        conv1 = tf.concat([conv1, final_state.h], 3)
         # == +++++++++++++++++++++++++++++++++++++++++++++
 
         print('conv1:              ', conv1.get_shape())
