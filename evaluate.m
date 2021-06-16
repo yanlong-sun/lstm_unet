@@ -1,7 +1,7 @@
 clc;
 clear;
 %% Evaluate 2.5d dense unet model
-prediction_path = '../pred_compare/2p5d_lstm1/';
+prediction_path = '../pred_compare/2p5d_lstm0/';
 masks_path = '../Dataset/test_data/test_data_nii/masks/';
 pred_folder= dir(prediction_path);
 pred_file={pred_folder.name};
