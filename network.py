@@ -25,29 +25,30 @@ class UNet(object):
         # -------------------------------------------------- #
         # 2: convolution 1
         name = 'start_block-'
-        outputs = ops.conv2d(outputs, rate_field, 48, (3, 3), name + '/conv1', stride=2, is_train=self.is_train, norm=False)
-        outputs = ops.conv2d(outputs, rate_field, 48, (3, 3), name + '/conv2', is_train=self.is_train, norm=False)
-        conv1 = ops.conv2d(outputs, rate_field, 48, (3, 3), name + '/conv3', is_train=self.is_train, norm=False)
+        outputs = ops.conv2d(outputs, rate_field, 96, (3, 3), name + '/conv1', stride=2, is_train=self.is_train, norm=False)
+        outputs = ops.conv2d(outputs, rate_field, 96, (3, 3), name + '/conv2', is_train=self.is_train, norm=False)
+        conv1 = ops.conv2d(outputs, rate_field, 96, (3, 3), name + '/conv3', is_train=self.is_train, norm=False)
 
         # == LSTM part +++++++++++++++++++++++++++++++++
         outputs_init = inputs[:, self.start_slice, :, :, :]
-        outputs_init = ops.conv2d(outputs_init, rate_field, 48, (3, 3), name + '/conv1', stride=2, is_train=False, norm=False, reuse=True)
-        outputs_init = ops.conv2d(outputs_init, rate_field, 48, (3, 3), name + '/conv2', is_train=False, norm=False, reuse=True)
-        conv1_lstm = ops.conv2d(outputs_init, rate_field, 48, (3, 3), name + '/conv3', is_train=False, norm=False, reuse=True)
+        outputs_init = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv1', stride=2, is_train=False, norm=False, reuse=True)
+        outputs_init = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv2', is_train=False, norm=False, reuse=True)
+        conv1_lstm = ops.conv2d(outputs_init, rate_field, 96, (3, 3), name + '/conv3', is_train=False, norm=False, reuse=True)
         conv1_lstm = tf.expand_dims(conv1_lstm, 1)
         for i in range(self.start_slice+1, 4):
             outputs_var = inputs[:, i, :, :, :]
-            outputs_var = ops.conv2d(outputs_var, rate_field, 48, (3, 3), name + '/conv1', stride=2, is_train=False, norm=False, reuse=True)
-            outputs_var = ops.conv2d(outputs_var, rate_field, 48, (3, 3), name + '/conv2', is_train=False, norm=False, reuse=True)
-            conv1_var = ops.conv2d(outputs_var, rate_field, 48, (3, 3), name + '/conv3', is_train=False, norm=False, reuse=True)
+            outputs_var = ops.conv2d(outputs_var, rate_field, 96, (3, 3), name + '/conv1', stride=2, is_train=False, norm=False, reuse=True)
+            outputs_var = ops.conv2d(outputs_var, rate_field, 96, (3, 3), name + '/conv2', is_train=False, norm=False, reuse=True)
+            conv1_var = ops.conv2d(outputs_var, rate_field, 96, (3, 3), name + '/conv3', is_train=False, norm=False, reuse=True)
             conv1_var = tf.expand_dims(conv1_var, 1)
             conv1_lstm = tf.concat([conv1_lstm, conv1_var], 1)
         print('conv1_lstm shape: ', conv1_lstm.get_shape())
         lstm_inputs_0 = conv1_lstm
-        cell0 = tf.contrib.rnn.ConvLSTMCell(conv_ndims=2, input_shape=[128, 128, 48], output_channels=48, kernel_shape=[3, 3])
+        cell0 = tf.contrib.rnn.ConvLSTMCell(conv_ndims=2, input_shape=[128, 128, 96], output_channels=96, kernel_shape=[3, 3])
         initial_state = cell0.zero_state(batch_size=self.conf.batch, dtype=tf.float32)
         output, final_state = tf.nn.dynamic_rnn(cell0, lstm_inputs_0, dtype=tf.float32, time_major=False, initial_state=initial_state, scope='rnn0')
         conv1 = tf.concat([conv1, final_state.h], 3)
+        conv1 = ops.conv2d(conv1, rate_field, 96, (1, 1), name+'conv11', is_train=self.is_train, norm=False, bias=False)
         # == +++++++++++++++++++++++++++++++++++++++++++++
 
         print('conv1:              ', conv1.get_shape())
