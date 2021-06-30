@@ -3,9 +3,9 @@ clear;
 
 % masks' path
 masks_path = '../Dataset/test_data/test_data_bmp/masks/'; % mask 
-preds_path = '../predictions_lstm2/';     % pred of the network
-final_preds_path = '../png_pred_results_lstm2/'; % classified by name
-save_path = '../pred_compare/2p5d_lstm2/';  % nii 
+preds_path = '../predictions/';     % pred of the network
+final_preds_path = '../png_pred_results_lstm/'; % classified by name
+save_path = '../pred_compare/2p5d_lstm/';  % nii 
 
 masks_folder=dir(masks_path);
 masks_file= {masks_folder.name};
